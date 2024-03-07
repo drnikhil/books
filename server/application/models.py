@@ -24,6 +24,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(length=30), nullable=False, unique=True)
     email_address = db.Column(db.String(length=50), nullable=False, unique=True)
     password_hash = db.Column(db.String(length=255), nullable=False)
+   
     is_librarian = db.Column(db.Boolean, default=False)
     is_approved = db.Column(db.Boolean, default=False)
     is_blacklisted = db.Column(db.Boolean, default=False)
@@ -34,8 +35,7 @@ class User(db.Model, UserMixin):
     bio = db.Column(db.String(length=255), nullable=True)
     last_login = db.Column(db.DateTime, default=None)
     last_login_day = db.Column(db.String(length=20), nullable=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
-       
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))       
     role = db.relationship('Role', backref='users')
 
     @property
@@ -76,8 +76,10 @@ class Admin(db.Model, UserMixin):
     __tablename__ = 'admin'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
+    
     password_hash = db.Column(db.String(255), nullable=False) 
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
+
     role = db.relationship('Role')
 
     @property

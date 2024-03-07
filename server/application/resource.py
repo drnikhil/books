@@ -5,10 +5,15 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 import uuid
 import os
 from werkzeug.utils import secure_filename
-from flask import current_app
+from flask import current_app, send_file
 from werkzeug.datastructures import FileStorage
 from datetime import datetime
 from sqlalchemy import or_
+from .tasks import create_resource_csv
+import flask_excel
+from celery.result import AsyncResult
+from .instances import cache
+
 
 
 
@@ -48,13 +53,6 @@ class AuthResource(Resource):
             return {'access_token': access_token}, 200
 
         return {'message': 'Invalid credentials'}, 401
-
-
-class GetUserResource(Resource):
-    @jwt_required()        
-    def get(self):
-        current_user = get_jwt_identity()
-        return {"user": current_user}
     
 class RegisterResource(Resource):
     def post(self):
@@ -72,20 +70,13 @@ class RegisterResource(Resource):
         
         role_id = 3
         role = Role.query.get(role_id)
-        
-   
-
-   
+           
         new_user = User(
             username=username,
             email_address=email,
             password=password
-          
-            
-        )
-
-
-         
+                     
+        )         
         db.session.add(new_user)
         db.session.commit()
 
@@ -104,18 +95,42 @@ class Logout(Resource):
       return {}, 204
     return {'error': 'Unauthorized'}, 401 
  
+
 class ProtectedResource(Resource):
     @jwt_required()
     def get(self):
         current_user = get_jwt_identity()
-        user_role = current_user.get('role')  # Extract user role from JWT token claims
+        user_role = current_user.get('role')  
 
         if user_role == 'admin':
             return {'message': 'Welcome, Admin'}, 200
+        elif user_role == 'librarian':
+            return {'message': 'Welcome, Librarian'}, 200
+        elif user_role == 'user':
+            user = User.query.filter_by(id=current_user.get('id')).first() 
+            if user:
+                return {'message': f"Welcome, {user.name}"}, 200
+            else:
+                return {'message': 'User not found'}, 404
         else:
             return {'message': 'Unauthorized'}, 403
+        
+
+class GetUserResource(Resource):
+    @jwt_required()        
+    def get(self):
+        current_user = get_jwt_identity()
+        user = User.query.filter_by(username=current_user).first()
+        if user:
+            return {"user": user.name}, 200
+        else:
+            return {"message": "User not found"}, 404
+# ...
 
 
+
+        
+       
 
 api.add_resource(HelloWorld, '/')  
 api.add_resource(AuthResource, '/login_api')
@@ -123,6 +138,26 @@ api.add_resource(Logout, '/logout')
 api.add_resource(GetUserResource, "/get_user")
 api.add_resource(RegisterResource, "/register_api")
 api.add_resource(ProtectedResource, '/protected')
+
+######################Tasks#######################
+
+class DownloadResource(Resource):
+    def get(self):
+        tasks= create_resource_csv.delay()
+        return jsonify({"task-id": tasks.id}) 
+    
+class GetCsvResource(Resource):
+    def get(self,task_id):
+        res = AsyncResult(task_id)
+        if res.ready():
+            filename =res.result
+            return send_file(filename, as_attachment=True,download_name="test.csv")
+        else:
+            return {'message' : 'Task Pending'}, 304
+
+api.add_resource(GetCsvResource,'/get_csv/<string:task_id>')
+api.add_resource(DownloadResource,'/dload_csv')
+
 
  ######################SECTION########################
 
@@ -252,6 +287,7 @@ class AddBookResource(Resource):
         return {'message': 'Book added successfully'}, 201
     
 class BooksBySectionResource(Resource):
+    #@cache.cached(timeout=30)
     def get(self, section_id):
         search_query = request.args.get('q', '')
         section = Section.query.get_or_404(section_id)

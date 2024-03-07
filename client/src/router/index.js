@@ -1,12 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../components/Home.vue';
-import Login from '../components/login.vue';
-import Register from '../components/register.vue';
+import Home from '../views/Home.vue';
+import Login from '../views/login.vue';
+import Register from '../views/register.vue';
 import Books from '../components/books.vue';
-import Librarian from '../components/LibrarianDashboard.vue';
-import Admin from '../components/AdminDashboard.vue'
-import User from '../components/UserDashboard.vue'
+import Dashboard from '../views/Dashboard.vue'
 import Navbar from '../components/navbar.vue'
+import UserDashboard from '../views/UserDashboard.vue';
+import LibrarianDashboard from '../views/LibrarianDashboard.vue';
+import AdminDashboard from '../views/AdminDashboard.vue';
+
+import BookList from '../components/booklist.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,28 +35,40 @@ const router = createRouter({
       component: Books
     },
     {
-      path: '/librarian',
-      name: 'librarian',
-      component: Librarian,
-      meta: { requiresAuth: true, role: 'librarian' }
-    },
-    {
-      path: '/admin',
-      name: 'admin',
-      component: Admin,
-      meta: { requiresAuth: true, role: 'admin' }
-    },
-    {
-      path: '/user',
-      name: 'user',
-      component: User,
-      meta: { requiresAuth: true, role: 'user' } 
+      path: '/dashboard',
+      name: 'dashboard',
+      component: Dashboard
     },
     {
       path: '/navbar',
       name: 'navbar',
       component: Navbar
-    }
+    },
+    {
+      path: '/user-dashboard',
+      name: 'userDashboard',
+      component: UserDashboard,
+      meta: { requiresAuth: true, role: 'user' }
+     },
+     {
+      path: '/librarian-dashboard',
+      name: 'librarianDashboard',
+      component: LibrarianDashboard,
+      meta: { requiresAuth: true, role: 'librarian' }
+     },
+     {
+      path: '/admin-dashboard',
+      name: 'adminDashboard',
+      component: AdminDashboard,
+      meta: { requiresAuth: true, role: 'admin' }
+     },
+     {
+      path: '/booklist',
+      name: 'booklist',
+      component:BookList,
+
+     }
+
   ]
 });
 

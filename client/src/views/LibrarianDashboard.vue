@@ -21,6 +21,10 @@
 
   
   export default {
+
+    name : 'Librarian',
+
+
     components: {
 
       SectionList

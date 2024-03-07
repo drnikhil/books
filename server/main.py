@@ -8,6 +8,14 @@ from config import DevelopmentConfig
 from application.models import db, bcrypt
 from flask_migrate import Migrate
 from application.resource import api
+############################################
+from celery.schedules import crontab
+import flask_excel as excel
+from celery import Celery
+from application.tasks import daily_reminder
+from application.instances import cache
+
+
 
 jwt = JWTManager()  
 
@@ -22,6 +30,8 @@ def create_app():
     api.init_app(app)
     jwt.init_app(app)
     bcrypt.init_app(app)
+    excel.init_excel(app)
+    cache.init_app(app)
 
     migrate = Migrate(app, db, render_batch=True)
     
@@ -32,8 +42,25 @@ def create_app():
 
     return app
 
+
+
+from application.worker import celery_init_app
+app = create_app()
+celery_app= None
+celery_app=celery_init_app(app)
+
+@celery_app.on_after_configure.connect
+def send_email(sender, **kwargs):
+    sender.add_periodic_task(
+        crontab(hour=8, minute=25, day_of_month=3),
+        daily_reminder.s('kitabwalatasks@taskmaster','test'),
+    )
+
+
+
 from application.resource import *
 
-if __name__ == '__main__':
-    app = create_app()
+
+
+if __name__ == '__main__':    
     app.run(debug=True)
