@@ -128,18 +128,24 @@ class Role(db.Model):
 
 
 class Section(db.Model):
+    __tablename__ = 'section'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     description = db.Column(db.Text, nullable=True)
+  
+
+
 
 
 
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    isbn=db.Column(db.String(30))
     name = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
     authors = db.Column(db.String(255), nullable=False)
+    section_name= db.Column(db.String(255),nullable=True)
     section_id = db.Column(db.Integer, db.ForeignKey('section.id'), nullable=False)    
     file_path = db.Column(db.String(255), nullable=True)
 

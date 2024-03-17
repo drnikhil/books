@@ -1,6 +1,7 @@
 <template>
     <div>
       <h1>Admin Dashboard</h1>
+      <h1> you are the boss</h1>
       <!-- Your content goes here -->
     </div>
   </template>

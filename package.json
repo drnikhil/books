@@ -1,6 +1,10 @@
 {
   "dependencies": {
-    "bootstrap": "^5.3.2",
-    "volar-service-vetur": "^0.0.30"
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.3",
+    "bootstrap-vue": "^2.23.1",
+    "popper.js": "^1.16.1",
+    "volar-service-vetur": "^0.0.30",
+    "vue": "^2.7.16"
   }
 }

@@ -15,7 +15,7 @@
   
   <script>
   import { computed } from 'vue';
-  import Admin from './AdminDashboard.vue';
+  import Admin from '../AdminDashboard.vue';
   import Librarian from './LibrarianDashboard.vue';
   import User from './UserDashboard.vue';
   

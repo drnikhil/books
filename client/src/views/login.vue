@@ -34,15 +34,15 @@
          .then((res) => {
            localStorage.setItem('access_token', res.data.access_token);
            localStorage.setItem('role', res.data.role);
-           localStorage.setItem('userName', res.data.user);
+           localStorage.setItem('username', res.data.username);
 
  
            if (res.data.role === 'user') {
-             this.$router.push('/user-dashboard');
+             this.$router.push('/user');
            } else if (res.data.role === 'librarian') {
-             this.$router.push('/librarian-dashboard');
+             this.$router.push('/lib');
            } else if (res.data.role === 'admin') {
-             this.$router.push('/admin-dashboard');
+             this.$router.push('/admin');
            }
            this.$emit('login-successful');
 
@@ -67,3 +67,4 @@
   color: red;
  }
  </style>
+ 

@@ -17,6 +17,7 @@ from .instances import cache
 
 
 
+
 api = Api()
 
 
@@ -40,17 +41,17 @@ class AuthResource(Resource):
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             access_token = create_access_token(identity=username, additional_claims={"role": user.role_id})
-            return {'access_token': access_token}, 200
+            return {'access_token': access_token, 'username': username, 'role': 'user'}, 200
 
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.check_password(password):
             access_token = create_access_token(identity=username, additional_claims={"role": "admin"})
-            return {'access_token': access_token}, 200
+            return {'access_token': access_token, 'username': username, 'role': 'admin'}, 200
 
         lib = Librarian.query.filter_by(username=username).first()
         if lib and lib.check_password(password):
             access_token = create_access_token(identity=username, additional_claims={"role": "librarian"})
-            return {'access_token': access_token}, 200
+            return {'access_token': access_token, 'username': username, 'role': 'librarian'}, 200
 
         return {'message': 'Invalid credentials'}, 401
     
@@ -116,13 +117,13 @@ class ProtectedResource(Resource):
             return {'message': 'Unauthorized'}, 403
         
 
-class GetUserResource(Resource):
+class GetUser(Resource):
     @jwt_required()        
     def get(self):
         current_user = get_jwt_identity()
         user = User.query.filter_by(username=current_user).first()
         if user:
-            return {"user": user.name}, 200
+            return {"user": user.username}, 200
         else:
             return {"message": "User not found"}, 404
 # ...
@@ -135,7 +136,7 @@ class GetUserResource(Resource):
 api.add_resource(HelloWorld, '/')  
 api.add_resource(AuthResource, '/login_api')
 api.add_resource(Logout, '/logout')
-api.add_resource(GetUserResource, "/get_user")
+api.add_resource(GetUser, "/get_user")
 api.add_resource(RegisterResource, "/register_api")
 api.add_resource(ProtectedResource, '/protected')
 
@@ -163,7 +164,7 @@ api.add_resource(DownloadResource,'/dload_csv')
 
 
 
-class AddSectionsResource(Resource):
+class AddSections(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str, required=True)
@@ -185,15 +186,36 @@ class AddSectionsResource(Resource):
 
         return {'message': 'Section added successfully', 'section_id': new_section.id},   201
 
-class SectionsResource(Resource):
+class Search(Resource):
     def get(self):
-        search_query = request.args.get('q', '')  # Get the search query from the request parameters
-        sections = Section.query.filter(or_(Section.name.ilike(f"%{search_query}%"), Section.description.ilike(f"%{search_query}%"))).all()
-        section_data = [{'id': section.id, 'name': section.name} for section in sections]
-        return {'sections': section_data},  200
+        search_query = request.args.get('q', '')  
+        sections = Section.query.filter(
+                or_(
+                Section.name.ilike(f"%{search_query}%"), 
+                Section.description.ilike(f"%{search_query}%")
+                )
+            ).all()
+        books = Book.query.filter(
+            or_(
+                Book.name.ilike(f"%{search_query}%"),
+                Book.authors.ilike("f%{search_query}%") ,
+                Book.isbn.ilike("f%{search_query}%")
+                                                       
+            )
+        ).all()
+
+
+        if not sections and not books:
+            return jsonify({'message': 'No search results found'}), 404
+
+        results = {
+            'sections': [{'id': section.id, 'name': section.name} for section in sections],
+            'books': [{'id': book.id, 'title': book.name} for book in books]
+        }
+        return results,  200
     
 
-class DeleteSectionResource(Resource):
+class DeleteSection(Resource):
     def delete(self,section_id):
         section=Section.query.get(section_id)    
         if section is None:
@@ -202,7 +224,7 @@ class DeleteSectionResource(Resource):
         db.session.commit()
         return {'message': 'Section deleted Successfully'},200
 
-class UpdateSectionResource(Resource):
+class UpdateSection(Resource):
     def post(self, section_id):
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
@@ -223,7 +245,7 @@ class UpdateSectionResource(Resource):
         db.session.commit()
         return {'message': 'Section updated successfully'},  200
 
-class SectionResource(Resource):
+class getSection(Resource):
     def get(self):
      
         sections = Section.query.all()
@@ -231,19 +253,19 @@ class SectionResource(Resource):
         section_list = [{'id': section.id, 'name': section.name} for section in sections]
         return jsonify(section_list)    
 
-api.add_resource(SectionsResource, '/get_sections') 
-api.add_resource(AddSectionsResource, '/add_section')
-api.add_resource(DeleteSectionResource,'/delete_section')
-api.add_resource(UpdateSectionResource,'/update_section/<int:section_id>')
-api.add_resource(SectionResource, '/sections')
+api.add_resource(Search, '/search') 
+api.add_resource(AddSections, '/add_section')
+api.add_resource(DeleteSection,'/delete_section/<int:section_id>')
+api.add_resource(UpdateSection,'/update_section/<int:section_id>')
+api.add_resource(getSection, '/sections')
 
 
 
 ####################BOOKS#########################
  
 
-class FileUploadResource(Resource):
-    def post(self):
+class FileUpload(Resource):
+    def post(self, book_id):
         parser = reqparse.RequestParser()
         parser.add_argument('file', type=FileStorage, location='files', required=True)
         args = parser.parse_args()
@@ -253,68 +275,79 @@ class FileUploadResource(Resource):
             filename = secure_filename(file.filename)
             file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
-            return {'message': 'File uploaded successfully', 'file_path': file_path}, 201
+            
+            # Retrieve the book object
+            book = Book.query.get(book_id)
+            if book:
+                # Update the book object with the file path
+                book.file_path = file_path
+                db.session.commit()
+                
+                return {'message': 'File uploaded successfully', 'file_path': file_path}, 201
+            else:
+                return {'message': 'Book not found'}, 404
         else:
             return {'message': 'Invalid file format'}, 400
 
+
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf', 'epub'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf', 'epub' ,'mp3'}
 
 
-class AddBookResource(Resource):
+class AddBook(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('name', type=str, required=True)
-        parser.add_argument('content', type=str, required=True)
-        parser.add_argument('authors', type=str, required=True)
         parser.add_argument('section_id', type=int, required=True)
-        parser.add_argument('file_path', type=str)
+        parser.add_argument('name', type=str, required=True)
+        parser.add_argument('authors', type=str, required=True)
+        parser.add_argument('content', type=str, required=True)
+        parser.add_argument('file_path',type=str)
+
         args = parser.parse_args()
 
-        
         new_book = Book(
             name=args['name'],
             content=args['content'],
             authors=args['authors'],
             section_id=args['section_id'],
-            file_path=args['file_path']
+            file_path = args['file_path']
+            
         )
 
-       
         db.session.add(new_book)
         db.session.commit()
 
-        return {'message': 'Book added successfully'}, 201
+        return {'message': 'Book added successfully', 'book_id': new_book.id}, 201
+class BooksBySection(Resource):
     
-class BooksBySectionResource(Resource):
-    #@cache.cached(timeout=30)
     def get(self, section_id):
         search_query = request.args.get('q', '')
         section = Section.query.get_or_404(section_id)
         
-        # Query books based on section_id and search query
         books = Book.query.filter_by(section_id=section_id).filter(
             or_(Book.name.ilike(f"%{search_query}%"), Book.authors.ilike(f"%{search_query}%"))
         ).all()
         
-    
         book_data = []
         for book in books:
             book_info = {
+                'id': book.id,
                 'name': book.name,
                 'content': book.content,
                 'authors': book.authors,
-                'file_path': book.file_path
+                'file_path': book.file_path,
+                'section_id': book.section_id,
+                'section_name': section.name
             }
             book_data.append(book_info)
     
-        return {'section_name': section.name, 'books': book_data}, 200
+        return {'section': {'id': section.id, 'name': section.name}, 'books': book_data}, 200
   
-class GetBooksResource(Resource):
+class GetBooks(Resource):
     def get(self):
         search_query = request.args.get('q', '')
         
-        # Query books based on search query
+        
         books = Book.query.filter(
             or_(Book.name.ilike(f"%{search_query}%"), Book.authors.ilike(f"%{search_query}%"))
         ).all()
@@ -336,7 +369,7 @@ class GetBooksResource(Resource):
         return {'books': book_data}, 200
 
   
-class DeleteBookResource(Resource):
+class DeleteBook(Resource):
     def delete(self, book_id):
         book = Book.query.get(book_id)
         if book is None:
@@ -348,7 +381,7 @@ class DeleteBookResource(Resource):
 
         return {'message': 'Book deleted successfully'}, 200
 
-class UpdateBookResource(Resource):
+class UpdateBook(Resource):
     def put(self, book_id):
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
@@ -378,7 +411,7 @@ class UpdateBookResource(Resource):
     
 
 
-class RateBookResource(Resource):
+class RateBook(Resource):
     def post(self, book_id):
         parser = reqparse.RequestParser()
         parser.add_argument('rating', type=float, required=True)
@@ -389,8 +422,37 @@ class RateBookResource(Resource):
         db.session.commit()
 
         return {'message': 'Book rated successfully'}, 200
+    
+class GetSectionsWithBooks(Resource):
+    
+    def get(self):
+        sections = Section.query.all()
+        sections_with_books = []
+        for section in sections:
+            section_data = {
+                'id': section.id,
+                'name': section.name,
+                'description': section.description,
+                'date_created': section.date_created.isoformat() if section.date_created else None,
+                'books': [
+                    {
+                        'id': book.id,
+                        'name': book.name,
+                        'content': book.content,
+                        'authors': book.authors,
+                        'file_path': book.file_path,
+                        'section_id': book.section_id,
+                        'section_name': section.name
+                    } for book in section.books
+                ]
+            }
+            sections_with_books.append(section_data)
+    
+        return {'sections': sections_with_books}, 200
 
-class CommentBookResource(Resource):
+api.add_resource(GetSectionsWithBooks, '/get_sections_with_books')    
+
+class CommentBook(Resource):
     def post(self, book_id):
         parser = reqparse.RequestParser()
         parser.add_argument('comment', type=str, required=True)
@@ -402,14 +464,15 @@ class CommentBookResource(Resource):
 
         return {'message': 'Comment added successfully'}, 201
 
-api.add_resource(AddBookResource, '/add_book')
-api.add_resource(FileUploadResource, '/upload_file')
-api.add_resource(BooksBySectionResource, '/get_books/<int:section_id>')
-api.add_resource(RateBookResource, '/rate_book/<int:book_id>')
-api.add_resource(CommentBookResource, '/comment_book/<int:book_id>')
-api.add_resource(DeleteBookResource,'/delete_book/<int:book_id>')
-api.add_resource(UpdateBookResource, '/update_book/<int:book_id>')
-api.add_resource(GetBooksResource,'/getbooks')
+api.add_resource(AddBook, '/add_book')
+api.add_resource(FileUpload, '/upload_file/<int:book_id>')
+api.add_resource(BooksBySection, '/get_books/<int:section_id>')
+#api.add_resource(SectionBooks,'/getsectionwithbooks')
+api.add_resource(RateBook, '/rate_book/<int:book_id>')
+api.add_resource(CommentBook, '/comment_book/<int:book_id>')
+api.add_resource(DeleteBook,'/delete_book/<int:book_id>')
+api.add_resource(UpdateBook, '/update_book/<int:book_id>')
+api.add_resource(GetBooks,'/getbooks')
   
   
 

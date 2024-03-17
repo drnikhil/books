@@ -1,15 +1,26 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/Home.vue';
-import Login from '../views/login.vue';
-import Register from '../views/register.vue';
-import Books from '../components/books.vue';
-import Dashboard from '../views/Dashboard.vue'
-import Navbar from '../components/navbar.vue'
-import UserDashboard from '../views/UserDashboard.vue';
-import LibrarianDashboard from '../views/LibrarianDashboard.vue';
-import AdminDashboard from '../views/AdminDashboard.vue';
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '../views/Home.vue'
+import Login from '../views/login.vue'
+import Admin from '../views/AdminDashboard.vue'
+import User from '../views/UserDashboard.vue'
+import Librarian from "../views/LibrarianDashboard.vue"
+import Register from "../views/register.vue"
 
-import BookList from '../components/booklist.vue';
+
+
+import Base from "../components/base.vue"
+import BookList from "../components/booklist.vue"
+import Search from '../components/search.vue'
+import SectionList from '../components/SectionList.vue'
+import Upload from '../components/upload.vue'
+import AddBook from '../components/addbook.vue'
+import DeleteBook from '../components/deletebook.vue'
+import UpdateBook from "../components/updatebook.vue"
+import LibraryPage from "../components/LibraryPage.vue"
+
+
+
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,69 +31,80 @@ const router = createRouter({
       component: Home
     },
     {
+      path: '/search',
+      name: 'Search',
+      component: Search
+
+    },
+    {
       path: '/login',
-      name: 'login',
+      name: 'Login',
       component: Login
     },
-    {
-      path: '/register',
-      name: 'register',
-      component: Register
-    },
-    {
-      path: '/books',
-      name: 'books',
-      component: Books
-    },
-    {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: Dashboard
-    },
-    {
-      path: '/navbar',
-      name: 'navbar',
-      component: Navbar
-    },
-    {
-      path: '/user-dashboard',
-      name: 'userDashboard',
-      component: UserDashboard,
-      meta: { requiresAuth: true, role: 'user' }
-     },
-     {
-      path: '/librarian-dashboard',
-      name: 'librarianDashboard',
-      component: LibrarianDashboard,
-      meta: { requiresAuth: true, role: 'librarian' }
-     },
-     {
-      path: '/admin-dashboard',
-      name: 'adminDashboard',
-      component: AdminDashboard,
-      meta: { requiresAuth: true, role: 'admin' }
-     },
-     {
-      path: '/booklist',
-      name: 'booklist',
-      component:BookList,
+    {path: '/admin',
+    name: 'Admin',
+    component: Admin
+  },
+  {
+    path:'/lib',
+    name:'librarian',
+    component: Librarian
+  },
+  {
+    path:'/user',
+    name: 'user',
+    component: User
+  },
 
-     }
+  {
+    path: '/register',
+    name: 'register',
+    component: Register
+  },
+  {
+    path: '/base',
+    name: 'base',
+    component: Base
+  },
+  {
+    path: '/booklist',
+    name: 'booklist',
+    component: BookList
+  },
+  {
+    path: '/sections',
+    name: SectionList,
+    component: SectionList
+  },
+  {
+    path: '/upload',
+    name:'Upload',
+    component: Upload
+  },
+  {
+    path: '/addbook',
+    name:'AddBook',
+    component: AddBook
+  },
+  {
+    path: '/deletebook',
+    name:'DeleteBook',
+    component: DeleteBook
+  },
+  {
+    path:'/updatebook',
+    name: 'UpdateBook',
+    component: UpdateBook
+  },
+  {
+    path:'/librarypage',
+    name: 'LibraryPage',
+    component: LibraryPage
+  },
+
+
 
   ]
-});
+})
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('access_token');
-  const userRole = localStorage.getItem('role');
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login');
-  } else if (to.meta.role && to.meta.role !== userRole) {
-    
-    next('/' + userRole);
-  } else {
-    next();
-  }
-});
-
-export default router;
+export default router
