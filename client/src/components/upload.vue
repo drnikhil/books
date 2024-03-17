@@ -18,6 +18,7 @@ export default {
     return {
       file: null,
       file_path: null
+      
     };
  },
  methods: {
