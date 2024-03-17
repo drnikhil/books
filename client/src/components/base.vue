@@ -45,6 +45,7 @@
         </div>
       </li>
     </nav>
+    <slot name="navbar"></slot>
     
     <div v-if="searchResults.sections.length">
       <h3>Sections</h3>

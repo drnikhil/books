@@ -1,6 +1,5 @@
 <template>
   <div>
-    
     <div>Welcome Bookworm {{ username }}</div>
     <div class="table-container">
       <table class="table">
@@ -10,7 +9,10 @@
             <th>Books</th>
             <th>Authors</th>
             <th>Content</th>
-            <th>Borrow</th>
+            
+            <th>Ratings</th>
+            <th>Comments</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -34,11 +36,22 @@
               </ul>
               <span v-else>N/A</span>
             </td>
+
             <td>
               <ul v-if="section.books && section.books.length">
-                <li v-for="book in section.books" :key="book.id">{{ book.file_path }}</li>
+                <li v-for="book in section.books" :key="book.id">{{ book.rating }}</li>
               </ul>
               <span v-else>N/A</span>
+            </td>
+            <td>
+              <ul v-if="section.books && section.books.length">
+                <li v-for="book in section.books" :key="book.id">{{ book.comments }}</li>
+              </ul>
+              <span v-else>N/A</span>
+            </td>
+            <td>
+              <button @click="requestBook(section.id)">Request Book</button>
+              <button @click="readBook(section.id)" :disabled="!section.approved">Read</button>
             </td>
           </tr>
         </tbody>
@@ -53,18 +66,15 @@ import Base from '@/components/Base.vue';
 
 export default {
   name: 'User',
-
-  components : {
+  components: {
     Base
   },
-
   data() {
     return {
       sections: [],
       username: localStorage.getItem('username') || '',
     };
   },
-
   methods: {
     getSections() {
       const path = 'http://127.0.0.1:5000/sections';
@@ -113,8 +123,13 @@ export default {
           console.error(error);
         });
     },
+    requestBook(bookId) {
+      // Implement request book functionality
+    },
+    readBook(bookId) {
+      // Implement read book functionality
+    },
   },
-
   created() {
     this.getSections();
     this.getBook();
@@ -154,4 +169,10 @@ th {
 tbody tr:nth-child(even) {
   background-color: #e9ecef;
 }
+.table-container {
+  max-width: 800px;
+  margin: 20px auto;
+  text-align: right; 
+}
+
 </style>

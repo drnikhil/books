@@ -474,6 +474,34 @@ api.add_resource(DeleteBook,'/delete_book/<int:book_id>')
 api.add_resource(UpdateBook, '/update_book/<int:book_id>')
 api.add_resource(GetBooks,'/getbooks')
   
+##########################################################
+
+
+class Count(Resource):
+    def get(self):
+        user_count = User.query.count()
+        section_count = Section.query.count()  # Corrected typo in "count()"
+        book_count = Book.query.count()
+        
+        return {'users': user_count,
+                'sections': section_count,  
+                'books': book_count
+               }
+
+api.add_resource(Count, '/count')
+
+
+class Request(Resource):
+    def post(self, book_id):
+        user_authenticated = True 
+
+        if user_authenticated:
+            access_token = create_access_token(identity=request.json.get('user_id'), expires_delta=timedelta(minutes=30))
+            return jsonify(access_token=access_token), 200
+        else:
+            return jsonify(error="User is not authenticated or does not have access rights"), 401
+
+api.add_resource(Request, '/request/<int:book_id>')
   
 
 

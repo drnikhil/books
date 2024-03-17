@@ -17,7 +17,8 @@ import AddBook from '../components/addbook.vue'
 import DeleteBook from '../components/deletebook.vue'
 import UpdateBook from "../components/updatebook.vue"
 import LibraryPage from "../components/LibraryPage.vue"
-
+import Count from "../components/count.vue"
+import Logout from "../components/logout.vue"
 
 
 
@@ -101,6 +102,16 @@ const router = createRouter({
     name: 'LibraryPage',
     component: LibraryPage
   },
+  {
+    path:'/count',
+    name: 'Count',
+    component: Count
+  },
+  {
+    path: '/logout',
+    name: 'Logout',
+    component: Count
+  }
 
   ]
 })
