@@ -19,6 +19,8 @@ import UpdateBook from "../components/updatebook.vue"
 import LibraryPage from "../components/LibraryPage.vue"
 import Count from "../components/count.vue"
 import Logout from "../components/logout.vue"
+import Approve from "../components/approve.vue"
+import Rentals from "../components/rentals.vue"
 
 
 
@@ -111,7 +113,18 @@ const router = createRouter({
     path: '/logout',
     name: 'Logout',
     component: Count
+  },
+  {
+    path:'/approve',
+    name: 'Approve',
+    component: Approve
+  },
+  {
+    path:'/rentals',
+    name: 'Rentals',
+    component: Rentals
   }
+
 
   ]
 })

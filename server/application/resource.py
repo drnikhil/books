@@ -1,13 +1,13 @@
-from flask import request,session,jsonify
+from flask import request,session,jsonify,make_response
 from flask_restful import Resource, Api,reqparse,marshal_with,fields
-from .models import db,User,Book,Section,Comment, Admin,Librarian,Role
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from .models import db,User,Book,Section,Comment, Admin,Librarian,Role,Rating,Rental
+from flask_jwt_extended import create_access_token,get_jwt_identity, jwt_required
 import uuid
 import os
 from werkzeug.utils import secure_filename
 from flask import current_app, send_file
 from werkzeug.datastructures import FileStorage
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import or_
 from .tasks import create_resource_csv
 import flask_excel
@@ -41,7 +41,7 @@ class AuthResource(Resource):
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             access_token = create_access_token(identity=username, additional_claims={"role": user.role_id})
-            return {'access_token': access_token, 'username': username, 'role': 'user'}, 200
+            return {'access_token': access_token, 'username': username, 'role': 'user','user_id' : user.id}, 200
 
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.check_password(password):
@@ -252,6 +252,8 @@ class getSection(Resource):
         
         section_list = [{'id': section.id, 'name': section.name} for section in sections]
         return jsonify(section_list)    
+    
+
 
 api.add_resource(Search, '/search') 
 api.add_resource(AddSections, '/add_section')
@@ -358,6 +360,7 @@ class GetBooks(Resource):
             section_name = book.section.name if book.section else None
             
             book_info = {
+                'book_id':book.id,
                 'name': book.name,
                 'content': book.content,
                 'authors': book.authors,
@@ -474,7 +477,7 @@ api.add_resource(DeleteBook,'/delete_book/<int:book_id>')
 api.add_resource(UpdateBook, '/update_book/<int:book_id>')
 api.add_resource(GetBooks,'/getbooks')
   
-##########################################################
+################################Count##########################
 
 
 class Count(Resource):
@@ -482,28 +485,113 @@ class Count(Resource):
         user_count = User.query.count()
         section_count = Section.query.count()  # Corrected typo in "count()"
         book_count = Book.query.count()
+        requests_count=Rental.query.count()
         
         return {'users': user_count,
                 'sections': section_count,  
-                'books': book_count
+                'books': book_count,
+                'requests': requests_count
                }
 
 api.add_resource(Count, '/count')
 
+######################USER access#################################
 
-class Request(Resource):
-    def post(self, book_id):
-        user_authenticated = True 
+class DisplayRental(Resource):
+    def get(self):
+        self.reqparse=reqparse.RequestParser()
+        self.reqparse.add_argument('book_id')
 
-        if user_authenticated:
-            access_token = create_access_token(identity=request.json.get('user_id'), expires_delta=timedelta(minutes=30))
-            return jsonify(access_token=access_token), 200
+
+class RequestBook(Resource):
+    def __init__(self):
+        super(RequestBook, self).__init__()
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('book_id', type=int, required=True, help='No book ID provided')
+        self.reqparse.add_argument('user_id', type=int, required=True, help='No user ID provided')
+
+    def post(self):
+        args = self.reqparse.parse_args()
+        book_id = args['book_id']
+        user_id = args['user_id']
+
+        bookscount = Rental.query.filter_by(borrower_id=user_id, returned=False).count()
+
+        if bookscount >= 5:
+            return {'message': 'You have reached the maximum limit of checked out books.'}, 403
+
+        new_rental = Rental(
+            book_id=book_id,
+            borrower_id=user_id,
+        )
+        db.session.add(new_rental)
+        db.session.commit()
+        return {'message': 'Your request has been submitted for approval.'}, 201
+
+
+
+
+class Approve(Resource):
+    def get(self):
+        
+        pending_requests = Rental.query.filter_by(approved=False).all()
+       
+        return [{'book_id': req.book_id, 'borrower_id': req.borrower_id} for req in pending_requests]
+
+    def put(self, rental_id):
+        
+        rental_request = Rental.query.get(rental_id)
+        if not rental_request:
+            return {'message': 'Rental request not found'}, 404
+
+        if rental_request.approved == True:
+            return{"message" : 'It is already approved '}
         else:
-            return jsonify(error="User is not authenticated or does not have access rights"), 401
+            rental_request.approved = True
+            rental_request.approval_time = datetime.utcnow()
+            rental_request.access_duration = 5
+            db.session.commit()
 
-api.add_resource(Request, '/request/<int:book_id>')
-  
+        return {'message': 'Rental request approved for 5 minutes'}, 200
+    
+class RentalResource(Resource):
+    def get(self):
+        rentals = Rental.query.all()
+        rental_list = [{'id': rental.id, 'book_id': rental.book_id, 'borrower_id': rental.borrower_id, 'date_issued': rental.date_issued.isoformat(), 'return_date': rental.return_date.isoformat() if rental.return_date else None, 'returned': rental.returned, 'approved': rental.approved, 'access_duration': rental.access_duration, 'approval_time': rental.approval_time.isoformat() if rental.approval_time else None, 'book_count': rental.book_count} for rental in rentals]
+        return jsonify(rental_list)
+    
+class DeleteRental(Resource):
+    def delete(self, rental_id):
+        rental = Rental.query.get(rental_id)
+        if not rental:
+            return {'message': 'Rental not found'}, 404
+
+        db.session.delete(rental)
+        db.session.commit()
+        
+        return {'message': 'Rental request deleted successfully'}, 200
 
 
 
-            
+
+class Revoke(Resource):
+    def put(self, rental_id):
+        rental_request = Rental.query.get(rental_id)
+        if not rental_request:
+            return {'message': 'Rental request not found'}, 404
+
+        rental_request.approved = False
+        rental_request.returned = True
+        rental_request.return_date = datetime.utcnow()
+        db.session.commit()
+
+        return {'message': 'Access revoked for the e-book'}, 200
+    
+
+api.add_resource(DeleteRental, '/delete_rental/<int:rental_id>')    
+
+api.add_resource(RentalResource, '/rentals')
+api.add_resource(Revoke, '/revoke_access/<int:rental_id>')    
+
+api.add_resource(Approve, '/approve', '/approve/<int:rental_id>')
+api.add_resource(RequestBook, '/requestbook')    

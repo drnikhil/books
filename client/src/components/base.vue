@@ -104,7 +104,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .wrapper {
   position: fixed;
   top: 0;
@@ -123,7 +123,7 @@ export default {
   color: white;
 }
 
-body {
+.body {
   background-color: #4d3319;
   background-image: url('../assets/background.png');
   background-size: cover;

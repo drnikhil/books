@@ -1,5 +1,7 @@
 <template>
-  <div>
+   <Logout />
+
+  <div class="background">
     <div>Welcome Bookworm {{ username }}</div>
     <div class="table-container">
       <table class="table">
@@ -9,7 +11,6 @@
             <th>Books</th>
             <th>Authors</th>
             <th>Content</th>
-            
             <th>Ratings</th>
             <th>Comments</th>
             <th>Actions</th>
@@ -36,7 +37,6 @@
               </ul>
               <span v-else>N/A</span>
             </td>
-
             <td>
               <ul v-if="section.books && section.books.length">
                 <li v-for="book in section.books" :key="book.id">{{ book.rating }}</li>
@@ -50,8 +50,7 @@
               <span v-else>N/A</span>
             </td>
             <td>
-              <button @click="requestBook(section.id)">Request Book</button>
-              <button @click="readBook(section.id)" :disabled="!section.approved">Read</button>
+              <button v-for="book in section.books" :key="book.id" @click="requestBook(book.book_id)">Request Book</button>
             </td>
           </tr>
         </tbody>
@@ -62,12 +61,13 @@
 
 <script>
 import axios from 'axios';
-import Base from '@/components/Base.vue';
+import Logout from '../components/logout.vue';
 
 export default {
   name: 'User',
+
   components: {
-    Base
+    Logout
   },
   data() {
     return {
@@ -116,18 +116,29 @@ export default {
       };
       axios.get(path, config)
         .then((res) => {
-          this.username = res.data.user;
+          this.username = res.data.username;
           localStorage.setItem('username', this.username);
+          localStorage.setItem('user_id', res.data.user_id);
         })
         .catch((error) => {
           console.error(error);
         });
     },
     requestBook(bookId) {
-      // Implement request book functionality
-    },
-    readBook(bookId) {
-      // Implement read book functionality
+      const userId = localStorage.getItem('user_id');
+      const path = `http://127.0.0.1:5000/requestbook`;
+      const data = {
+        book_id: bookId, // Corrected variable name
+        user_id: userId
+      };
+      console.log('Request Data:', data);
+      axios.post(path, data)
+        .then((res) => {
+          console.log('Response:', res.data.message);
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     },
   },
   created() {
@@ -139,9 +150,9 @@ export default {
 </script>
 
 <style scoped>
-div {
-  color: white;
-  font-family: 'Courier New', Courier, monospace;
+.background {
+  background-color: #f4ede6; /* Background color reminiscent of old newspaper or book */
+  padding: 20px; /* Add some padding for better readability */
 }
 
 .table-container {
@@ -169,10 +180,17 @@ th {
 tbody tr:nth-child(even) {
   background-color: #e9ecef;
 }
-.table-container {
-  max-width: 800px;
-  margin: 20px auto;
-  text-align: right; 
+
+button {
+  background-color: #4CAF50; /* Green background color for buttons */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049; /* Darker green background color on hover */
 }
 
 </style>

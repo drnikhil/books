@@ -3,6 +3,7 @@
       <h2>User Count: {{ userCount }}</h2>
       <h2>Section Count: {{ sectionCount }}</h2>
       <h2>Book Count: {{ bookCount }}</h2>
+      <h2>Requests Count: {{ requestsCount }}</h2>
     </div>
   </template>
   
@@ -17,7 +18,8 @@
       return {
         userCount: 0,
         sectionCount: 0,
-        bookCount: 0
+        bookCount: 0,
+        requests: 0,
       };
     },
     mounted() {
@@ -30,6 +32,7 @@
             this.userCount = response.data.users;
             this.sectionCount = response.data.sections;
             this.bookCount = response.data.books;
+            this.requestsCount =response.data.requests;
           })
           .catch(error => console.error('Error fetching counts:', error));
       }

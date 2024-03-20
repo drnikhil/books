@@ -1,6 +1,6 @@
 <template>
-  
-  <v-btn color="red darken-1" @click="logout">Logout</v-btn>
+  <Logout />
+
   <v-card color="basil">
     <v-card-title class="text-center justify-center py-6">
       <h1 class="font-weight-bold text-h2 text-basil">Librarian Dashboard</h1>
@@ -24,41 +24,49 @@
           <v-card-text v-if="item === 'Home'">
             <Count />
           </v-card-text>
-        
- 
+          <v-card-text v-if="item === 'Request/Return'">
+            <Rentals />
+          </v-card-text>
+          
         </v-card>
       </v-window-item>
     </v-window>
   </v-card>
-  
 </template>
 
 <script>
 import SectionList from '@/components/SectionList.vue';
-import Base from '@/components/Base.vue'
 import LibraryPage from '../components/LibraryPage.vue';
 import Count from '../components/count.vue'
-import Logout from '../components/logout.vue'
+import Rentals from '../components/rentals.vue'
+import Logout  from '../components/logout.vue';
+
 
 export default {
   components: {
-    Base,
     SectionList,
     LibraryPage,
     Count,
-    Logout
+    Rentals,
+    Logout,
+
   },
   data() {
     return {
-      tab: 'HOME',
-      items: ['Home', 'Section Management','Book Management', 'Request/RETURN', 'MISC'],
-      
+      tab: 'Home',
+      items: ['Home', 'Section Management', 'Book Management', 'Request/Return', 'Misc'],
+    
     }
   },
+  methods: {
+
+  }
 };
 </script>
 
 <style>
+
+
 .bg-basil {
   background-color: #fffbe6 !important;
 }

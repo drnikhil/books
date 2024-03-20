@@ -116,9 +116,6 @@ class Librarian(db.Model):
     
 
 
-
-
-
 class Role(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
@@ -151,18 +148,22 @@ class Book(db.Model):
 
     section = db.relationship('Section', backref='books')
 
+
+
 class Rental(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
-   
     borrower_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    date_issued = db.Column(db.Date, default=datetime.utcnow, nullable=False)
-    return_date = db.Column(db.Date, nullable=True)
-    returned = db.Column(db.Boolean, default=False, nullable=False)    
-
+    date_issued = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    return_date = db.Column(db.DateTime, nullable=True)
+    returned = db.Column(db.Boolean, default=False, nullable=False)
+    approved = db.Column(db.Boolean, default=False, nullable=False)
+    access_duration = db.Column(db.Integer, default=7, nullable=False) 
+    approval_time = db.Column(db.DateTime, nullable=True) 
+    book_count = db.Column(db.Integer, default=0, nullable=False) 
     borrower = db.relationship('User', backref='rentals')
     book = db.relationship('Book', backref='rentals')
+
 
 
 class Comment(db.Model):
