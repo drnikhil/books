@@ -9,14 +9,18 @@
        <button type="submit" style="font-family: 'Courier New', Courier, monospace; font-size: 16px; background-color: #4CAF50; color: white; padding: 14px 20px; margin: 8px 0; border: none; cursor: pointer; border-radius: 5px; width: 100%;">Login</button>
        <p v-if="errorMessage" class="error" style="font-family: 'Courier New', Courier, monospace; font-size: 16px; color: red; margin-top: 10px;">{{ errorMessage }}</p>
      </form>
+     <a href="http://localhost:5173/register">sign up here</a>
+
   </div>
  </template>
  
  <script>
  import axios from 'axios';
+
  
  export default {
   name: 'Login',
+
   data() {
      return {
        username: '',

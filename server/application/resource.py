@@ -63,7 +63,11 @@ class RegisterResource(Resource):
 
         username = data["username"]
         password = data["password"]
+        confirm_password = data["confirm_password"]
         email = data["email_address"]
+
+        if password != confirm_password:
+            return {"error": "Passwords do not match"}, 400
      
 
         user_ex = User.query.filter_by(username=username).first()
@@ -681,10 +685,14 @@ class UserBooks(Resource):
     
 class Filesend(Resource):
     def get(self, filename):
-        return send_from_directory('uploads', filename) 
+        
+        file_extension = filename.split('.')[-1]
+        if file_extension.lower() in ['pdf', 'epub', 'mp3']:
+            return send_from_directory('uploads', filename)
+        else:
+            return {"message": "Unsupported file format"}, 400
 
-api.add_resource(Filesend, '/uploads/<path:filename>')       
-
+api.add_resource(Filesend, '/uploads/<path:filename>')
 
 
     

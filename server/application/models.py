@@ -29,7 +29,8 @@ class User(db.Model, UserMixin):
     is_approved = db.Column(db.Boolean, default=False)
     is_blacklisted = db.Column(db.Boolean, default=False)
     is_premium = db.Column(db.Boolean, default=False)
-    fs_uniquifier = db.Column(db.String(36), default=str(uuid.uuid4))
+   
+    fs_uniquifier = db.Column(db.String(36), default=lambda: str(uuid.uuid4()))
     status = db.Column(db.String(length=20), default='pending')
     profile_picture = db.Column(db.String(length=255), nullable=True)
     bio = db.Column(db.String(length=255), nullable=True)

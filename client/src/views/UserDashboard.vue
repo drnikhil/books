@@ -127,7 +127,7 @@ export default {
         .then(response => {
           const bookDetails = response.data;
           const filePath = bookDetails.file_path;
-          bookDetails.filePath = `http://127.0.0.1:5000/uploads/${filePath}`;
+          bookDetails.filePath = `http://127.0.0.1:5000/${filePath}`;
           this.bookDetails = bookDetails;
         })
         .catch(error => {
