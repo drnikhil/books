@@ -1,14 +1,21 @@
 <template>
   <div class="container">
-    <button type="button" class="btn btn-primary">{{ msg }}</button>
+    <button type="button" class="btn btn-primary message-button">{{ msg }}</button>
+    <Search/>
+
+  
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import Search from '../components/search.vue' 
 
 export default {
   name: 'Home',
+  components: {
+    Search,
+  },
   data() {
     return {
       msg: '',
@@ -22,7 +29,6 @@ export default {
           this.msg = res.data;
         })
         .catch((error) => {
-
           console.error(error);
         });
     },
@@ -32,3 +38,10 @@ export default {
   },
 };
 </script>
+
+<style>
+body {
+  background-image: url('../assets/background.png');
+  background-size: cover;
+}
+</style>

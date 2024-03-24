@@ -1,4 +1,4 @@
-from flask import request,session,jsonify,make_response
+from flask import request,session,jsonify,make_response,send_from_directory
 from flask_restful import Resource, Api,reqparse,marshal_with,fields
 from .models import db,User,Book,Section,Comment, Admin,Librarian,Role,Rating,Rental
 from flask_jwt_extended import create_access_token,get_jwt_identity, jwt_required
@@ -8,7 +8,8 @@ from werkzeug.utils import secure_filename
 from flask import current_app, send_file
 from werkzeug.datastructures import FileStorage
 from datetime import datetime, timedelta
-from sqlalchemy import or_
+from sqlalchemy import or_ 
+from sqlalchemy.orm import joinedload
 from .tasks import create_resource_csv
 import flask_excel
 from celery.result import AsyncResult
@@ -87,7 +88,7 @@ class RegisterResource(Resource):
 
 class HelloWorld(Resource):
     def get(self):
-        return {"message": 'hello world '}
+        return {"message": 'You are now connected to unlimited supply of book click on logo to login '}
     
 class Logout(Resource):
   def delete(self):
@@ -198,21 +199,25 @@ class Search(Resource):
         books = Book.query.filter(
             or_(
                 Book.name.ilike(f"%{search_query}%"),
-                Book.authors.ilike("f%{search_query}%") ,
-                Book.isbn.ilike("f%{search_query}%")
+                Book.authors.ilike(f"%{search_query}%"), 
+                Book.isbn.ilike(f"%{search_query}%")
                                                        
             )
         ).all()
 
-
         if not sections and not books:
             return jsonify({'message': 'No search results found'}), 404
 
+        
+        authors = [book.authors for book in books]
+
         results = {
             'sections': [{'id': section.id, 'name': section.name} for section in sections],
-            'books': [{'id': book.id, 'title': book.name} for book in books]
+            'books': [{'id': book.id, 'name': book.name, 'authors': book.authors} for book in books],  # Include authors here
+            'authors': authors  
         }
         return results,  200
+
     
 
 class DeleteSection(Resource):
@@ -526,33 +531,36 @@ class RequestBook(Resource):
         )
         db.session.add(new_rental)
         db.session.commit()
-        return {'message': 'Your request has been submitted for approval.'}, 201
-
+        return {'message': 'Your request has been submitted for approval.','rental_id': new_rental.id}, 201
 
 
 
 class Approve(Resource):
     def get(self):
-        
+
         pending_requests = Rental.query.filter_by(approved=False).all()
-       
+
         return [{'book_id': req.book_id, 'borrower_id': req.borrower_id} for req in pending_requests]
 
     def put(self, rental_id):
-        
+       
         rental_request = Rental.query.get(rental_id)
         if not rental_request:
             return {'message': 'Rental request not found'}, 404
 
-        if rental_request.approved == True:
-            return{"message" : 'It is already approved '}
-        else:
-            rental_request.approved = True
-            rental_request.approval_time = datetime.utcnow()
-            rental_request.access_duration = 5
-            db.session.commit()
+        if rental_request.approved:
+            return {'message': 'Rental request is already approved'}, 400
 
-        return {'message': 'Rental request approved for 5 minutes'}, 200
+     
+        rental_request.approved = True
+        rental_request.approval_time = datetime.utcnow()
+        rental_request.access_duration = 5 
+
+        db.session.commit()
+
+       
+        return {'message': 'Rental request approved for 5 minutes', 'rental_id': rental_request.id,'book_id': rental_request.book_id}, 200
+
     
 class RentalResource(Resource):
     def get(self):
@@ -587,11 +595,104 @@ class Revoke(Resource):
 
         return {'message': 'Access revoked for the e-book'}, 200
     
+class ReadBook(Resource):
+    def get(self, rental_id):
+        
+        rental = Rental.query.get(rental_id)
+        if not rental:
+            return {'message': 'Rental request not found'}, 404
 
+        
+        if not rental.approved:
+            return {'message': 'Rental request is not approved'}, 403
+
+        
+        book = Book.query.get(rental.book_id)
+        if not book:
+            return {'message': 'Book not found'}, 404
+
+        file_path = book.file_path
+        if not file_path:
+            return {'message': 'File path not provided for the book'}, 404
+
+      
+        if not os.path.exists(file_path):
+            return {'message': 'File not found'}, 404
+
+       
+        file_extension = os.path.splitext(file_path)[1].lower()
+
+        
+        if file_extension not in ['.pdf', '.epub']:
+            return {'message': 'Unsupported file format'}, 400
+
+       
+        return send_from_directory(os.path.dirname(file_path), os.path.basename(file_path))
+    
+
+
+class BookDetails(Resource):
+    def get(self, rental_id):
+        rental = Rental.query.get(rental_id)
+        if rental and rental.approved:
+            book = Book.query.get(rental.book_id)
+            if book:
+                book_details = {
+                    'name': book.name,
+                    'content': book.content,
+                    'file_path': book.file_path
+                }
+                return jsonify(book_details)
+        return jsonify({'error': 'Rental not approved yet'})
+    
+
+class UserBooks(Resource):
+    def get(self):
+        data = request.get_json()  
+        user_id = data.get('user_id')  
+        if not user_id:
+            return {'error': 'User ID is required'}, 400
+
+        books = db.session.query(Book).options(joinedload(Book.rentals)).all()
+
+        books_data = []
+        for book in books:
+            rental_status = 'Not Requested'
+            rental_id = None
+        
+            for rental in book.rentals:
+                if rental.borrower_id == user_id:
+                    if rental.approved:
+                        rental_status = 'Approved'
+                    else:
+                        rental_status = 'Requested'
+                    rental_id = rental.id
+                    break
+            
+            books_data.append({
+                'id': book.id,
+                'name': book.name,
+                'authors': book.authors,
+                'status': rental_status,
+                'rental_id': rental_id,
+            })
+
+        return {'books': books_data}, 200
+    
+class Filesend(Resource):
+    def get(self, filename):
+        return send_from_directory('uploads', filename) 
+
+api.add_resource(Filesend, '/uploads/<path:filename>')       
+
+
+
+    
+api.add_resource(UserBooks, '/books')    
+api.add_resource(BookDetails, '/bookdetails/<int:rental_id>')
+api.add_resource(ReadBook, '/read_book/<int:rental_id>')    
 api.add_resource(DeleteRental, '/delete_rental/<int:rental_id>')    
-
 api.add_resource(RentalResource, '/rentals')
 api.add_resource(Revoke, '/revoke_access/<int:rental_id>')    
-
 api.add_resource(Approve, '/approve', '/approve/<int:rental_id>')
 api.add_resource(RequestBook, '/requestbook')    

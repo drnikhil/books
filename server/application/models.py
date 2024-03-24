@@ -38,6 +38,10 @@ class User(db.Model, UserMixin):
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))       
     role = db.relationship('Role', backref='users')
 
+    
+    rentals = db.relationship('Rental', back_populates='borrower')
+
+
     @property
     def profile_picture_url(self):
         if self.profile_picture:
@@ -130,11 +134,6 @@ class Section(db.Model):
     name = db.Column(db.String(100), nullable=False)
     date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     description = db.Column(db.Text, nullable=True)
-  
-
-
-
-
 
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -161,8 +160,9 @@ class Rental(db.Model):
     access_duration = db.Column(db.Integer, default=7, nullable=False) 
     approval_time = db.Column(db.DateTime, nullable=True) 
     book_count = db.Column(db.Integer, default=0, nullable=False) 
-    borrower = db.relationship('User', backref='rentals')
+    
     book = db.relationship('Book', backref='rentals')
+    borrower = db.relationship('User', back_populates='rentals')
 
 
 

@@ -1,0 +1,71 @@
+class Rental(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
+    borrower_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date_issued = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    return_date = db.Column(db.DateTime, nullable=True)
+    returned = db.Column(db.Boolean, default=False, nullable=False)
+    approved = db.Column(db.Boolean, default=False, nullable=False)
+    access_duration = db.Column(db.Integer, default=7, nullable=False) 
+    approval_time = db.Column(db.DateTime, nullable=True) 
+    book_count = db.Column(db.Integer, default=0, nullable=False) 
+    borrower = db.relationship('User', backref='rentals')
+    book = db.relationship('Book', backref='rentals')
+
+
+class getSection(Resource):	
+    def get(self):
+     
+        sections = Section.query.all()
+        
+        section_list = [{'id': section.id, 'name': section.name} for section in sections]
+        return jsonify(section_list)
+
+
+class getRental(Resource):
+    def get(self)
+        rentals = Rental.query.all()
+        rental_list =[ {'id': rental.id, 'borrowere :rental.borrower.id, date_issued
+
+
+
+from flask import send_from_directory
+from flask_restful import Resource
+import os
+
+class ReadBook(Resource):
+    def get(self, rental_id):
+        # Find the rental request by ID
+        rental = Rental.query.get(rental_id)
+        if not rental:
+            return {'message': 'Rental request not found'}, 404
+
+        
+        if not rental.approved:
+            return {'message': 'Rental request is not approved'}, 403
+
+        
+        book = Book.query.get(rental.book_id)
+        if not book:
+            return {'message': 'Book not found'}, 404
+
+        file_path = book.file_path
+        if not file_path:
+            return {'message': 'File path not provided for the book'}, 404
+
+      
+        if not os.path.exists(file_path):
+            return {'message': 'File not found'}, 404
+
+       
+        file_extension = os.path.splitext(file_path)[1].lower()
+
+        
+        if file_extension not in ['.pdf', '.epub']:
+            return {'message': 'Unsupported file format'}, 400
+
+       
+        return send_from_directory(os.path.dirname(file_path), os.path.basename(file_path))
+
+
+api.add_resource(ReadBook, '/read_book/<int:rental_id>')

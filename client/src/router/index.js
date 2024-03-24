@@ -9,18 +9,16 @@ import Register from "../views/register.vue"
 
 
 import Base from "../components/base.vue"
-import BookList from "../components/booklist.vue"
 import Search from '../components/search.vue'
 import SectionList from '../components/SectionList.vue'
 import Upload from '../components/upload.vue'
-import AddBook from '../components/addbook.vue'
-import DeleteBook from '../components/deletebook.vue'
-import UpdateBook from "../components/updatebook.vue"
+
+
 import LibraryPage from "../components/LibraryPage.vue"
 import Count from "../components/count.vue"
-import Logout from "../components/logout.vue"
-import Approve from "../components/approve.vue"
 import Rentals from "../components/rentals.vue"
+import Read from "../components/read.vue"
+import BookDetails from "../components/bookdetails.vue"
 
 
 
@@ -69,11 +67,7 @@ const router = createRouter({
     name: 'base',
     component: Base
   },
-  {
-    path: '/booklist',
-    name: 'booklist',
-    component: BookList
-  },
+
   {
     path: '/sections',
     name: SectionList,
@@ -84,21 +78,9 @@ const router = createRouter({
     name:'Upload',
     component: Upload
   },
-  {
-    path: '/addbook',
-    name:'AddBook',
-    component: AddBook
-  },
-  {
-    path: '/deletebook',
-    name:'DeleteBook',
-    component: DeleteBook
-  },
-  {
-    path:'/updatebook',
-    name: 'UpdateBook',
-    component: UpdateBook
-  },
+
+
+
   {
     path:'/librarypage',
     name: 'LibraryPage',
@@ -114,16 +96,22 @@ const router = createRouter({
     name: 'Logout',
     component: Count
   },
-  {
-    path:'/approve',
-    name: 'Approve',
-    component: Approve
-  },
+
   {
     path:'/rentals',
     name: 'Rentals',
     component: Rentals
-  }
+  },
+  {
+    path:'/readbook',
+    name:'Read',
+    component: Read
+  },
+  {
+    path: '/bookdetails/',
+    name: 'BookDetails',
+    component: BookDetails
+   }
 
 
   ]
